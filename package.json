@@ -1,0 +1,40 @@
+{
+  "name": "release-tracker",
+  "version": "1.0.0",
+  "dependencies": {
+    "@xstate/react": "^0.7.1",
+    "@yarnpkg/lockfile": "^1.1.0",
+    "axios": "^0.19.0",
+    "marked": "^0.7.0",
+    "netlify-cli": "^2.13.0",
+    "ramda": "^0.26.1",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
+    "react-scripts": "3.1.1",
+    "semver": "^6.3.0",
+    "xstate": "^4.6.7"
+  },
+  "scripts": {
+    "start": "netlify dev",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scrip,ts eject",
+    "predeploy": "yarn build",
+    "deploy": "netlify deploy --prod --dir=build"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
