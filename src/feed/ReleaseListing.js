@@ -12,7 +12,7 @@ const ReleaseListing = (
     },
     dependencies,
     devDependencies,
-    yarnLock
+    lockFile
   }
 ) => {
   const specifiedVersion = dependencies[packageName] ||
@@ -48,8 +48,8 @@ const ReleaseListing = (
           (currently specified as
           {" "}
           {specifiedVersion || "?"}
-          {yarnLock &&
-            `, locked at ${yarnLock[packageName] ? yarnLock[packageName] : "?"}`}
+          {lockFile &&
+            `, locked at ${lockFile[packageName] ? lockFile[packageName] : "?"}`}
           )
         </span>
       </div>

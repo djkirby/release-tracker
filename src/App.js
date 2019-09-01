@@ -35,11 +35,11 @@ const getPackageJsonPackages = R.pipe(
   R.reject(R.startsWith("@types/"))
 );
 
-const fetchReleases = packageJson =>
+const fetchReleases = dependenciesFile =>
   Promise.all(
     R.splitEvery(
       PACKAGES_PER_REQUEST,
-      getPackageJsonPackages(packageJson)
+      getPackageJsonPackages(dependenciesFile)
     ).map(pkg =>
       axios.get(
         `/.netlify/functions/get-package-releases?packages=${pkg.join(",")}`
@@ -49,17 +49,17 @@ const fetchReleases = packageJson =>
 const getPackageRepoPath = ({ repository }) =>
   typeof repository === "object" ? repository.url : repository;
 
-const extractPackageRepo = packageJson => {
+const extractPackageRepo = dependenciesFile => {
   const [_, owner, repo] = R.match(/github\.com\/(.+?)\/(.+?)\.git/)(
-    getPackageRepoPath(packageJson)
+    getPackageRepoPath(dependenciesFile)
   );
   return [owner, repo];
 };
 
 const initialContext = {
   language: "javascript",
-  packageJson: null,
-  yarnLock: null,
+  dependenciesFile: null,
+  lockFile: null,
   releases: null,
   sort: "date",
   filters: {
@@ -163,17 +163,19 @@ const releaseTrackerMachine = Machine(
   },
   {
     guards: {
-      dependenciesFileSaved: ({ packageJson }) => !!packageJson
+      dependenciesFileSaved: ({ dependenciesFile }) => !!dependenciesFile
     },
     services: {
-      fetchReleases: ({ packageJson }) => fetchReleases(packageJson)
+      fetchReleases: ({ dependenciesFile }) => fetchReleases(dependenciesFile)
     },
     actions: {
       changeLanguage: assign({ language: (_, { language }) => language }),
-      storeDependenciesFile: assign({ packageJson: (_, { file }) => file }),
-      clearDependenciesFile: assign({ packageJson: null }),
-      storeLockFile: assign({ yarnLock: (_, { file }) => file }),
-      clearLockFile: assign({ yarnLock: null }),
+      storeDependenciesFile: assign({
+        dependenciesFile: ({}, { file }) => file
+      }),
+      clearDependenciesFile: assign({ dependenciesFile: null }),
+      storeLockFile: assign({ lockFile: (_, { file }) => file }),
+      clearLockFile: assign({ lockFile: null }),
       storeReleases: assign({
         releases: (_, { data }) =>
           R.flatten(
@@ -220,8 +222,8 @@ const App = () => {
 
   const {
     language,
-    packageJson,
-    yarnLock,
+    dependenciesFile,
+    lockFile,
     sort,
     filters,
     error,
@@ -238,8 +240,8 @@ const App = () => {
           ...current,
           context: {
             ...initialContext,
-            packageJson,
-            yarnLock,
+            dependenciesFile,
+            lockFile,
             sort,
             filters
           }
@@ -295,14 +297,14 @@ const App = () => {
   };
 
   const getProjectName = () => {
-    if (!packageJson) {
+    if (!dependenciesFile) {
       return null;
     }
-    const repo = getPackageRepoPath(packageJson);
+    const repo = getPackageRepoPath(dependenciesFile);
     if (repo) {
       return extractPackageRepo(repo).join("/");
     }
-    return packageJson.name;
+    return dependenciesFile.name;
   };
 
   return (
@@ -327,7 +329,14 @@ const App = () => {
             />
           : current.matches("feed")
               ? <Feed
-                  {...{ error, releases, packageJson, filters, yarnLock, sort }}
+                  {...{
+                    error,
+                    releases,
+                    dependenciesFile,
+                    filters,
+                    lockFile,
+                    sort
+                  }}
                   onFilterChange={filter =>
                     send({ type: "CHANGE_FILTER", filter })}
                   onSortChange={sort => send({ type: "CHANGE_SORT", sort })}

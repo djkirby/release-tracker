@@ -20,7 +20,7 @@ const sortReleases = sort =>
       : R.ascend(R.prop("packageName"))
   ]);
 
-const filterReleases = (filters, dependencies, devDependencies, yarnLock) => {
+const filterReleases = (filters, dependencies, devDependencies, lockFile) => {
   const {
     includeOld,
     includeAlpha,
@@ -33,7 +33,7 @@ const filterReleases = (filters, dependencies, devDependencies, yarnLock) => {
   const rejections = [
     [!includeAlpha, isAlpha],
     [!includeBeta, isBeta],
-    [!includeOld, isSatisfied(dependencies, devDependencies, yarnLock)],
+    [!includeOld, isSatisfied(dependencies, devDependencies, lockFile)],
     [!includeRC, isReleaseCandidate],
     [!includeDev, isDevDependency(devDependencies)],
     [!includeDep, isDependency(dependencies)]
@@ -49,8 +49,8 @@ const filterReleases = (filters, dependencies, devDependencies, yarnLock) => {
 const ReleasesList = (
   {
     releases,
-    packageJson: { dependencies, devDependencies },
-    yarnLock,
+    lockFile: { dependencies, devDependencies },
+    lockFile,
     sort,
     filters,
     onFilterChange,
@@ -58,7 +58,7 @@ const ReleasesList = (
   }
 ) => {
   const releaseListings = R.pipe(
-    filterReleases(filters, dependencies, devDependencies, yarnLock),
+    filterReleases(filters, dependencies, devDependencies, lockFile),
     sortReleases(sort)
   )(releases);
 
@@ -77,7 +77,7 @@ const ReleasesList = (
         : releaseListings.map(release => (
             <ReleaseListing
               key={`${release.packageName}-${release.tagName}`}
-              {...{ release, dependencies, devDependencies, yarnLock }}
+              {...{ release, dependencies, devDependencies, lockFile }}
             />
           ))}
     </div>
