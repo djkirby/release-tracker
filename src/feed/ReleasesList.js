@@ -49,7 +49,7 @@ const filterReleases = (filters, dependencies, devDependencies, lockFile) => {
 const ReleasesList = (
   {
     releases,
-    lockFile: { dependencies, devDependencies },
+    dependenciesFile: { dependencies, devDependencies },
     lockFile,
     sort,
     filters,

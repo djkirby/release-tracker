@@ -171,7 +171,8 @@ const releaseTrackerMachine = Machine(
     actions: {
       changeLanguage: assign({ language: (_, { language }) => language }),
       storeDependenciesFile: assign({
-        dependenciesFile: ({}, { file }) => file
+        dependenciesFile: ({ language }, { file }) =>
+          language === "javascript" ? JSON.parse(file) : file
       }),
       clearDependenciesFile: assign({ dependenciesFile: null }),
       storeLockFile: assign({ lockFile: (_, { file }) => file }),
@@ -219,6 +220,7 @@ const service = interpret(releaseTrackerMachine).start(
 
 const App = () => {
   const [current, send] = useService(service);
+  console.log(current.context);
 
   const {
     language,
@@ -269,7 +271,7 @@ const App = () => {
     } else {
       const reader = new FileReader();
       reader.onload = ({ target: { result } }) => {
-        send({ type: "UPLOAD_DEPENDENCIES_FILE", file: JSON.parse(result) });
+        send({ type: "UPLOAD_DEPENDENCIES_FILE", file: result });
       };
       reader.readAsText(file);
     }
