@@ -1,11 +1,13 @@
 import React from "react";
 
+import { dependenciesFileName, lockFileName } from "../shared/utils";
+
 const Setup = (
   {
     language,
     onLanguageChange,
-    onPackageJsonChange,
-    onYarnLockChange,
+    onDependenciesFileChange,
+    onLockFileChange,
     onContinueClick
   }
 ) => {
@@ -52,25 +54,27 @@ const Setup = (
             </div>
           </div>
           <div style={{ marginBottom: "1rem" }}>
-            <label htmlFor="package-json">package.json: </label>
+            <label htmlFor="package-json">
+              {dependenciesFileName(language)}:{" "}
+            </label>
             <input
               type="file"
               required={true}
               name="package-json"
               id="package-json"
-              onChange={onPackageJsonChange}
+              onChange={onDependenciesFileChange}
             />
             <div style={{ fontSize: 14 }}>Used to determine packages used.</div>
           </div>
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="yarn-lock">
-              yarn.lock (optional):{" "}
+              {lockFileName(language)} (optional):{" "}
             </label>
             <input
               type="file"
               name="yarn-lock"
               id="yarn-lock"
-              onChange={onYarnLockChange}
+              onChange={onLockFileChange}
             />
             <div style={{ fontSize: 14 }}>
               Used to determine currently installed versions, if locked down.

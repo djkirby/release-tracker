@@ -10,6 +10,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import Feed from "./feed";
 import Setup from "./setup";
 import Heading from "./shared/Heading";
+import { dependenciesFileName, lockFileName } from "./shared/utils";
 
 const LS_KEY = "releases-tracker";
 const PACKAGES_PER_REQUEST = 5;
@@ -94,7 +95,7 @@ const releaseTrackerMachine = Machine(
               uploaded: {
                 type: "final",
                 on: {
-                  CLEAR_PACKAGE_JSON: {
+                  CLEAR_DEPENDENCIES_FILE: {
                     target: "notUploaded",
                     actions: "clearDependenciesFile"
                   }
@@ -107,7 +108,7 @@ const releaseTrackerMachine = Machine(
             states: {
               notUploaded: {
                 on: {
-                  UPLOAD_YARN_LOCK: {
+                  UPLOAD_LOCK_FILE: {
                     target: "uploaded",
                     actions: "storeLockFile"
                   }
@@ -116,7 +117,7 @@ const releaseTrackerMachine = Machine(
               uploaded: {
                 type: "final",
                 on: {
-                  CLEAR_YARN_LOCK: {
+                  CLEAR_LOCK_FILE: {
                     target: "notUploaded",
                     actions: "clearLockFile"
                   }
@@ -254,13 +255,14 @@ const App = () => {
     [send]
   );
 
-  const handlePackageJsonChange = ({ target: { files } }) => {
+  const handleDependenciesFileChange = ({ target: { files } }) => {
     const [file] = files;
+    const expectedFileName = dependenciesFileName(language);
     if (!file) {
-      send("CLEAR_PACKAGE_JSON");
-    } else if (file.name !== "package.json") {
-      send("CLEAR_PACKAGE_JSON");
-      alert(`You uploaded '${file.name}' -- expecting 'package.json'.`);
+      send("CLEAR_DEPENDENCIES_FILE");
+    } else if (file.name !== expectedFileName) {
+      send("CLEAR_DEPENDENCIES_FILE");
+      alert(`You uploaded '${file.name}' -- expecting '${expectedFileName}'.`);
       window.location.reload();
     } else {
       const reader = new FileReader();
@@ -271,19 +273,20 @@ const App = () => {
     }
   };
 
-  const handleYarnLockChange = ({ target: { files } }) => {
+  const handleLockFileChange = ({ target: { files } }) => {
     const [file] = files;
+    const expectedFileName = lockFileName(language);
     if (!file) {
-      send("CLEAR_YARN_LOCK");
-    } else if (file.name !== "yarn.lock") {
-      send("CLEAR_YARN_LOCK");
-      alert(`You uploaded '${file.name}' -- expecting 'yarn.lock'.`);
+      send("CLEAR_LOCK_FILE");
+    } else if (file.name !== expectedFileName) {
+      send("CLEAR_LOCK_FILE");
+      alert(`You uploaded '${file.name}' -- expecting '${expectedFileName}'.`);
       window.location.reload();
     } else if (file) {
       const reader = new FileReader();
       reader.onload = ({ target: { result } }) => {
         send({
-          type: "UPLOAD_YARN_LOCK",
+          type: "UPLOAD_LOCK_FILE",
           file: yarnLockToMaxVersions(lockfile.parse(result).object)
         });
       };
@@ -318,8 +321,8 @@ const App = () => {
               {...{ language }}
               onLanguageChange={language =>
                 send({ type: "CHANGE_LANGUAGE", language })}
-              onPackageJsonChange={handlePackageJsonChange}
-              onYarnLockChange={handleYarnLockChange}
+              onDependenciesFileChange={handleDependenciesFileChange}
+              onLockFileChange={handleLockFileChange}
               onContinueClick={() => send("CONTINUE")}
             />
           : current.matches("feed")
