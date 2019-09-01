@@ -9,7 +9,7 @@ const Heading = ({ onReset, repoDisplay, projectName, projectSelected }) => (
     }}
   >
     <h1 style={{ fontSize: 32, marginRight: "1rem" }}>
-      NPM Release Tracker
+      Release Tracker
     </h1>
     {projectSelected &&
       <React.Fragment>
