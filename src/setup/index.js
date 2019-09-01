@@ -1,6 +1,14 @@
 import React from "react";
 
-const Setup = ({ onPackageJsonChange, onYarnLockChange, onContinueClick }) => {
+const Setup = (
+  {
+    language,
+    onLanguageChange,
+    onPackageJsonChange,
+    onYarnLockChange,
+    onContinueClick
+  }
+) => {
   const handleContinueClick = e => {
     e.preventDefault();
     onContinueClick();
@@ -26,12 +34,19 @@ const Setup = ({ onPackageJsonChange, onYarnLockChange, onContinueClick }) => {
                   id="javascript"
                   name="language"
                   type="radio"
-                  checked
+                  checked={language === "javascript"}
+                  onChange={() => onLanguageChange("javascript")}
                 />&nbsp;
                 <label htmlFor="javascript">javascript</label>
               </span>
               <span>
-                <input id="ruby" name="language" type="radio" disabled />&nbsp;
+                <input
+                  id="ruby"
+                  name="language"
+                  type="radio"
+                  checked={language === "ruby"}
+                  onChange={() => onLanguageChange("ruby")}
+                />&nbsp;
                 <label htmlFor="ruby">ruby</label>
               </span>
             </div>

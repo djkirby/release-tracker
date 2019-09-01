@@ -56,6 +56,7 @@ const extractPackageRepo = packageJson => {
 };
 
 const initialContext = {
+  language: "javascript",
   packageJson: null,
   yarnLock: null,
   releases: null,
@@ -125,7 +126,10 @@ const releaseTrackerMachine = Machine(
           }
         },
         onDone: "feed",
-        on: { CONTINUE: { target: "feed", cond: "packageJsonSaved" } }
+        on: {
+          CHANGE_LANGUAGE: { actions: "changeLanguage" },
+          CONTINUE: { target: "feed", cond: "packageJsonSaved" }
+        }
       },
       feed: {
         initial: "fetching",
@@ -161,6 +165,7 @@ const releaseTrackerMachine = Machine(
       fetchReleases: ({ packageJson }) => fetchReleases(packageJson)
     },
     actions: {
+      changeLanguage: assign({ language: (_, { language }) => language }),
       storePackageJson: assign({ packageJson: (_, { file }) => file }),
       clearPackageJson: assign({ packageJson: null }),
       storeYarnLock: assign({ yarnLock: (_, { file }) => file }),
@@ -210,6 +215,7 @@ const App = () => {
   const [current, send] = useService(service);
 
   const {
+    language,
     packageJson,
     yarnLock,
     sort,
@@ -306,6 +312,9 @@ const App = () => {
       <ErrorBoundary>
         {current.matches("setup")
           ? <Setup
+              {...{ language }}
+              onLanguageChange={language =>
+                send({ type: "CHANGE_LANGUAGE", language })}
               onPackageJsonChange={handlePackageJsonChange}
               onYarnLockChange={handleYarnLockChange}
               onContinueClick={() => send("CONTINUE")}
