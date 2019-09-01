@@ -80,14 +80,14 @@ const releaseTrackerMachine = Machine(
       setup: {
         type: "parallel",
         states: {
-          packageJsonUpload: {
+          dependenciesFileUpload: {
             initial: "notUploaded",
             states: {
               notUploaded: {
                 on: {
-                  UPLOAD_PACKAGE_JSON: {
+                  UPLOAD_DEPENDENCIES_FILE: {
                     target: "uploaded",
-                    actions: "storePackageJson"
+                    actions: "storeDependenciesFile"
                   }
                 }
               },
@@ -96,20 +96,20 @@ const releaseTrackerMachine = Machine(
                 on: {
                   CLEAR_PACKAGE_JSON: {
                     target: "notUploaded",
-                    actions: "clearPackageJson"
+                    actions: "clearDependenciesFile"
                   }
                 }
               }
             }
           },
-          yarnLockUpload: {
+          lockFileUpload: {
             initial: "notUploaded",
             states: {
               notUploaded: {
                 on: {
                   UPLOAD_YARN_LOCK: {
                     target: "uploaded",
-                    actions: "storeYarnLock"
+                    actions: "storeLockFile"
                   }
                 }
               },
@@ -118,7 +118,7 @@ const releaseTrackerMachine = Machine(
                 on: {
                   CLEAR_YARN_LOCK: {
                     target: "notUploaded",
-                    actions: "clearYarnLock"
+                    actions: "clearLockFile"
                   }
                 }
               }
@@ -128,7 +128,7 @@ const releaseTrackerMachine = Machine(
         onDone: "feed",
         on: {
           CHANGE_LANGUAGE: { actions: "changeLanguage" },
-          CONTINUE: { target: "feed", cond: "packageJsonSaved" }
+          CONTINUE: { target: "feed", cond: "dependenciesFileSaved" }
         }
       },
       feed: {
@@ -154,22 +154,25 @@ const releaseTrackerMachine = Machine(
       }
     },
     on: {
-      RESET: { target: "setup", actions: ["clearPackageJson", "clearYarnLock"] }
+      RESET: {
+        target: "setup",
+        actions: ["clearDependenciesFile", "clearLockFile"]
+      }
     }
   },
   {
     guards: {
-      packageJsonSaved: ({ packageJson }) => !!packageJson
+      dependenciesFileSaved: ({ packageJson }) => !!packageJson
     },
     services: {
       fetchReleases: ({ packageJson }) => fetchReleases(packageJson)
     },
     actions: {
       changeLanguage: assign({ language: (_, { language }) => language }),
-      storePackageJson: assign({ packageJson: (_, { file }) => file }),
-      clearPackageJson: assign({ packageJson: null }),
-      storeYarnLock: assign({ yarnLock: (_, { file }) => file }),
-      clearYarnLock: assign({ yarnLock: null }),
+      storeDependenciesFile: assign({ packageJson: (_, { file }) => file }),
+      clearDependenciesFile: assign({ packageJson: null }),
+      storeLockFile: assign({ yarnLock: (_, { file }) => file }),
+      clearLockFile: assign({ yarnLock: null }),
       storeReleases: assign({
         releases: (_, { data }) =>
           R.flatten(
@@ -262,7 +265,7 @@ const App = () => {
     } else {
       const reader = new FileReader();
       reader.onload = ({ target: { result } }) => {
-        send({ type: "UPLOAD_PACKAGE_JSON", file: JSON.parse(result) });
+        send({ type: "UPLOAD_DEPENDENCIES_FILE", file: JSON.parse(result) });
       };
       reader.readAsText(file);
     }
