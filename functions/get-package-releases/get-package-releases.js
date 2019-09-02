@@ -6,7 +6,7 @@ const cryptr = new Cryptr("foobarbaz");
 
 const RELEASES_PER_PACKAGE = 6;
 
-const cachedPackageRepos = {};
+const cachedPackageRepos = { javascript: {}, ruby: {} };
 
 const getPackageRepoPath = ({ repository }) =>
   typeof repository === "object" ? repository.url : repository;
@@ -18,7 +18,21 @@ const extractPackageRepo = packageJson => {
   return [owner, repo];
 };
 
-const fetchPackageRepo = pkg =>
+const fetchJavascriptPackageRepo = pkg =>
+  axios
+    .get(`https://registry.npmjs.org/${pkg}`)
+    .then(({ data: packageJson }) => {
+      const [owner, repo] = extractPackageRepo(packageJson);
+      cachedPackageRepos[language][pkg] = [owner, repo];
+      return [owner, repo];
+    })
+    .catch(e => {
+      // TODO: return an error to notify the client
+      console.log(`Caught Error: Couldn't find ${pkg} in the npm registry`);
+      return [];
+    });
+
+const fetchRubyPackageRepo = pkg =>
   axios
     .get(`https://registry.npmjs.org/${pkg}`)
     .then(({ data: packageJson }) => {
@@ -32,21 +46,27 @@ const fetchPackageRepo = pkg =>
       return [];
     });
 
-const getPackageRepo = (pkg, i) =>
-  new Promise(resolve => {
-    const cachedPackageRepo = cachedPackageRepos[pkg];
-    if (cachedPackageRepo) {
-      resolve(cachedPackageRepo);
-    } else {
-      setTimeout(
-        async () => {
-          const repo = await fetchPackageRepo(pkg);
-          resolve(repo);
-        },
-        i * 100
-      );
-    }
-  });
+const fetchPackageRepo = (language, pkg) =>
+  language === "javascript"
+    ? fetchJavascriptPackageRepo(pkg)
+    : language === "ruby" ? fetchRubyPackageRepo(pkg) : null;
+
+const getPackageRepo = language =>
+  (pkg, i) =>
+    new Promise(resolve => {
+      const cachedPackageRepo = cachedPackageRepos[language][pkg];
+      if (cachedPackageRepo) {
+        resolve(cachedPackageRepo);
+      } else {
+        setTimeout(
+          async () => {
+            const repo = await fetchPackageRepo(language, pkg);
+            resolve(repo);
+          },
+          i * 100
+        );
+      }
+    });
 
 const buildPackageReleasesFragment = (owner, repo, pkg) =>
   `
@@ -102,14 +122,18 @@ const mungeReleases = R.pipe(
 
 const sortReleases = R.sortWith([R.descend(R.prop("publishedAt"))]);
 
-const filterPackages = R.reject(R.contains("@types/"));
+const filterPackages = language =>
+  language === "javascript" ? R.reject(R.contains("@types/")) : R.identity;
 
 exports.handler = async (event, context) => {
-  const packages = event.queryStringParameters.packages.split(",");
+  const { packages: packagesList, language } = event.queryStringParameters;
+  const packages = packagesList.split(",");
 
-  const filteredPackages = filterPackages(packages);
+  const filteredPackages = filterPackages(language)(packages);
 
-  const packageRepos = await Promise.all(filteredPackages.map(getPackageRepo));
+  const packageRepos = await Promise.all(
+    filteredPackages.map(getPackageRepo(language))
+  );
 
   const packagesWithRepos = R.zip(filteredPackages, packageRepos).filter(
     ([pkg, repo]) => !!repo
