@@ -27,9 +27,6 @@ const filterReleases = (
   devDependencies,
   lockFile
 ) => {
-  if (language !== "javascript") {
-    return R.identity;
-  }
   const {
     includeOld,
     includeAlpha,
@@ -42,10 +39,14 @@ const filterReleases = (
   const rejections = [
     [!includeAlpha, isAlpha],
     [!includeBeta, isBeta],
-    [!includeOld, isSatisfied(dependencies, devDependencies, lockFile)],
     [!includeRC, isReleaseCandidate],
-    [!includeDev, isDevDependency(devDependencies)],
-    [!includeDep, isDependency(dependencies)]
+    ...(language === "javascript"
+      ? [
+          [!includeOld, isSatisfied(dependencies, devDependencies, lockFile)],
+          [!includeDev, isDevDependency(devDependencies)],
+          [!includeDep, isDependency(dependencies)]
+        ]
+      : [])
   ];
 
   return R.reject(release =>
@@ -74,8 +75,7 @@ const ReleasesList = (
 
   return (
     <div>
-      {language === "javascript" &&
-        <Filters {...{ filters, onFilterChange }} />}
+      <Filters {...{ language, filters, onFilterChange }} />
 
       <hr />
 

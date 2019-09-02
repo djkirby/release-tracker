@@ -262,6 +262,7 @@ const App = () => {
           ...current,
           context: {
             ...initialContext,
+            language,
             dependenciesFile,
             lockFile,
             sort,
