@@ -352,6 +352,7 @@ const App = () => {
           : current.matches("feed")
               ? <Feed
                   {...{
+                    language,
                     error,
                     releases,
                     dependenciesFile,

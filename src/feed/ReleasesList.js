@@ -20,7 +20,16 @@ const sortReleases = sort =>
       : R.ascend(R.prop("packageName"))
   ]);
 
-const filterReleases = (filters, dependencies, devDependencies, lockFile) => {
+const filterReleases = (
+  language,
+  filters,
+  dependencies,
+  devDependencies,
+  lockFile
+) => {
+  if (language !== "javascript") {
+    return R.identity;
+  }
   const {
     includeOld,
     includeAlpha,
@@ -48,6 +57,7 @@ const filterReleases = (filters, dependencies, devDependencies, lockFile) => {
 
 const ReleasesList = (
   {
+    language,
     releases,
     dependenciesFile: { dependencies, devDependencies },
     lockFile,
@@ -58,13 +68,14 @@ const ReleasesList = (
   }
 ) => {
   const releaseListings = R.pipe(
-    filterReleases(filters, dependencies, devDependencies, lockFile),
+    filterReleases(language, filters, dependencies, devDependencies, lockFile),
     sortReleases(sort)
   )(releases);
 
   return (
     <div>
-      <Filters {...{ filters, onFilterChange }} />
+      {language === "javascript" &&
+        <Filters {...{ filters, onFilterChange }} />}
 
       <hr />
 
@@ -77,7 +88,13 @@ const ReleasesList = (
         : releaseListings.map(release => (
             <ReleaseListing
               key={`${release.packageName}-${release.tagName}`}
-              {...{ release, dependencies, devDependencies, lockFile }}
+              {...{
+                language,
+                release,
+                dependencies,
+                devDependencies,
+                lockFile
+              }}
             />
           ))}
     </div>

@@ -11,9 +11,16 @@ const cachedPackageRepos = { javascript: {}, ruby: {} };
 const getPackageRepoPath = ({ repository }) =>
   typeof repository === "object" ? repository.url : repository;
 
-const extractPackageRepo = packageJson => {
+const extractPackageJsonRepo = packageJson => {
   const [_, owner, repo] = R.match(/github\.com\/(.+?)\/(.+?)\.git/)(
     getPackageRepoPath(packageJson)
+  );
+  return [owner, repo];
+};
+
+const extractGemfileRepo = gemfile => {
+  const [_, owner, repo] = R.match(/github\.com\/(.+?)\/(.+?)$/)(
+    gemfile.homepage_uri
   );
   return [owner, repo];
 };
@@ -22,7 +29,7 @@ const fetchJavascriptPackageRepo = pkg =>
   axios
     .get(`https://registry.npmjs.org/${pkg}`)
     .then(({ data: packageJson }) => {
-      const [owner, repo] = extractPackageRepo(packageJson);
+      const [owner, repo] = extractPackageJsonRepo(packageJson);
       cachedPackageRepos.javascript[pkg] = [owner, repo];
       return [owner, repo];
     })
@@ -34,15 +41,17 @@ const fetchJavascriptPackageRepo = pkg =>
 
 const fetchRubyPackageRepo = pkg =>
   axios
-    .get(`https://registry.npmjs.org/${pkg}`)
-    .then(({ data: packageJson }) => {
-      const [owner, repo] = extractPackageRepo(packageJson);
+    .get(`https://rubygems.org/api/v1/gems/${pkg}.json`)
+    .then(({ data: gemfile }) => {
+      const [owner, repo] = extractGemfileRepo(gemfile);
       cachedPackageRepos[pkg] = [owner, repo];
       return [owner, repo];
     })
     .catch(e => {
       // TODO: return an error to notify the client
-      console.log(`Caught Error: Couldn't find ${pkg} in the npm registry`);
+      console.log(
+        `Caught Error: Couldn't find ${pkg} in the rubygems registry`
+      );
       return [];
     });
 

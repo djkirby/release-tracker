@@ -3,6 +3,7 @@ import marked from "marked";
 
 const ReleaseListing = (
   {
+    language,
     release: {
       url,
       description,
@@ -15,9 +16,8 @@ const ReleaseListing = (
     lockFile
   }
 ) => {
-  const specifiedVersion = dependencies[packageName] ||
-    devDependencies[packageName] ||
-    "?";
+  const specifiedVersion = () =>
+    dependencies[packageName] || devDependencies[packageName] || "?";
 
   return (
     <div>
@@ -44,14 +44,15 @@ const ReleaseListing = (
         >
           {tagName}
         </a>
-        <span style={{ fontSize: 16 }}>
-          (currently specified as
-          {" "}
-          {specifiedVersion || "?"}
-          {lockFile &&
-            `, locked at ${lockFile[packageName] ? lockFile[packageName] : "?"}`}
-          )
-        </span>
+        {language === "javascript" &&
+          <span style={{ fontSize: 16 }}>
+            (currently specified as
+            {" "}
+            {specifiedVersion() || "?"}
+            {lockFile &&
+              `, locked at ${lockFile[packageName] ? lockFile[packageName] : "?"}`}
+            )
+          </span>}
       </div>
       <br />
       <pre
