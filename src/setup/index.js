@@ -18,7 +18,7 @@ const Setup = (
 
   return (
     <div>
-      <form onSubmit={handleContinueClick}>
+      <form onSubmit={handleContinueClick} key={language}>
         <div style={{ marginBottom: "1.5rem" }}>
           <h3 style={{ marginBottom: ".3rem", fontSize: 20 }}>
             Input the following files from your project to get started

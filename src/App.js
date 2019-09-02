@@ -28,21 +28,31 @@ const yarnLockToMaxVersions = R.pipe(
     ))
 );
 
-const getPackageJsonPackages = R.pipe(
+const getJavascriptPackages = R.pipe(
   R.props(["dependencies", "devDependencies"]),
   R.map(R.keys),
   R.flatten,
   R.reject(R.startsWith("@types/"))
 );
 
-const fetchReleases = dependenciesFile =>
+const getRubyPackages = R.pipe(
+  R.match(/gem '.+?'/g),
+  R.map(R.pipe(R.match(/gem '(.+?)'/), R.nth(1)))
+);
+
+const getDependenciesFilePackages = (language, dependenciesFile) =>
+  language === "javascript"
+    ? getJavascriptPackages(dependenciesFile)
+    : language === "ruby" ? getRubyPackages(dependenciesFile) : [];
+
+const fetchReleases = (language, dependenciesFile) =>
   Promise.all(
     R.splitEvery(
       PACKAGES_PER_REQUEST,
-      getPackageJsonPackages(dependenciesFile)
+      getDependenciesFilePackages(language, dependenciesFile)
     ).map(pkg =>
       axios.get(
-        `/.netlify/functions/get-package-releases?packages=${pkg.join(",")}`
+        `/.netlify/functions/get-package-releases?packages=${pkg.join(",")}&language=${language}`
       ))
   );
 
@@ -55,6 +65,9 @@ const extractPackageRepo = dependenciesFile => {
   );
   return [owner, repo];
 };
+
+const parseDependenciesFile = (language, file) =>
+  language === "javascript" ? JSON.parse(file) : file;
 
 const initialContext = {
   language: "javascript",
@@ -128,7 +141,13 @@ const releaseTrackerMachine = Machine(
         },
         onDone: "feed",
         on: {
-          CHANGE_LANGUAGE: { actions: "changeLanguage" },
+          CHANGE_LANGUAGE: {
+            actions: [
+              "changeLanguage",
+              "clearDependenciesFile",
+              "clearLockFile"
+            ]
+          },
           CONTINUE: { target: "feed", cond: "dependenciesFileSaved" }
         }
       },
@@ -166,13 +185,14 @@ const releaseTrackerMachine = Machine(
       dependenciesFileSaved: ({ dependenciesFile }) => !!dependenciesFile
     },
     services: {
-      fetchReleases: ({ dependenciesFile }) => fetchReleases(dependenciesFile)
+      fetchReleases: ({ language, dependenciesFile }) =>
+        fetchReleases(language, dependenciesFile)
     },
     actions: {
       changeLanguage: assign({ language: (_, { language }) => language }),
       storeDependenciesFile: assign({
         dependenciesFile: ({ language }, { file }) =>
-          language === "javascript" ? JSON.parse(file) : file
+          parseDependenciesFile(language, file)
       }),
       clearDependenciesFile: assign({ dependenciesFile: null }),
       storeLockFile: assign({ lockFile: (_, { file }) => file }),
