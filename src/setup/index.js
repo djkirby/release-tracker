@@ -75,6 +75,7 @@ const Setup = (
               name="yarn-lock"
               id="yarn-lock"
               onChange={onLockFileChange}
+              disabled={language !== "javascript"}
             />
             <div style={{ fontSize: 14 }}>
               Used to determine currently installed versions, if locked down.
