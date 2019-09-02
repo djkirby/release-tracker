@@ -23,7 +23,7 @@ const fetchJavascriptPackageRepo = pkg =>
     .get(`https://registry.npmjs.org/${pkg}`)
     .then(({ data: packageJson }) => {
       const [owner, repo] = extractPackageRepo(packageJson);
-      cachedPackageRepos[language][pkg] = [owner, repo];
+      cachedPackageRepos.javascript[pkg] = [owner, repo];
       return [owner, repo];
     })
     .catch(e => {
