@@ -80,9 +80,11 @@ const Setup = ({
           </div>
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="yarn-lock">
-              {lockFileName(language)} (optional):{" "}
+              {lockFileName(language)}
+              {language === "javascript" && " (optional)"}:{" "}
             </label>
             <input
+              required={language === "ruby"}
               type="file"
               name="yarn-lock"
               id="yarn-lock"

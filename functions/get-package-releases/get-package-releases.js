@@ -50,7 +50,9 @@ const fetchRubyPackageRepo = pkg =>
     .catch(e => {
       // TODO: return an error to notify the client
       console.log(
-        `Caught Error: Couldn't find ${pkg} in the rubygems registry`
+        `Caught Error: Couldn't fetch ${pkg} from the rubygems registry: ${
+          e.response.statusText
+        }`
       );
       return [];
     });
@@ -71,7 +73,7 @@ const getPackageRepo = language => (pkg, i) =>
       setTimeout(async () => {
         const repo = await fetchPackageRepo(language, pkg);
         resolve(repo);
-      }, i * 300);
+      }, i * 500);
     }
   });
 
