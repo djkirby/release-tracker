@@ -58,24 +58,22 @@ const fetchRubyPackageRepo = pkg =>
 const fetchPackageRepo = (language, pkg) =>
   language === "javascript"
     ? fetchJavascriptPackageRepo(pkg)
-    : language === "ruby" ? fetchRubyPackageRepo(pkg) : null;
+    : language === "ruby"
+      ? fetchRubyPackageRepo(pkg)
+      : null;
 
-const getPackageRepo = language =>
-  (pkg, i) =>
-    new Promise(resolve => {
-      const cachedPackageRepo = cachedPackageRepos[language][pkg];
-      if (cachedPackageRepo) {
-        resolve(cachedPackageRepo);
-      } else {
-        setTimeout(
-          async () => {
-            const repo = await fetchPackageRepo(language, pkg);
-            resolve(repo);
-          },
-          i * 100
-        );
-      }
-    });
+const getPackageRepo = language => (pkg, i) =>
+  new Promise(resolve => {
+    const cachedPackageRepo = cachedPackageRepos[language][pkg];
+    if (cachedPackageRepo) {
+      resolve(cachedPackageRepo);
+    } else {
+      setTimeout(async () => {
+        const repo = await fetchPackageRepo(language, pkg);
+        resolve(repo);
+      }, i * 300);
+    }
+  });
 
 const buildPackageReleasesFragment = (owner, repo, pkg) =>
   `
@@ -95,10 +93,13 @@ const buildPackageReleasesFragment = (owner, repo, pkg) =>
 const buildReleasesQuery = packagesWithRepos =>
   `
   {
-    ${packagesWithRepos.reduce((acc, [pkg, [owner, repo]]) => `
+    ${packagesWithRepos.reduce(
+      (acc, [pkg, [owner, repo]]) => `
       ${acc}
       ${buildPackageReleasesFragment(owner, repo, pkg)}
-    `, "")}
+    `,
+      ""
+    )}
   }
 `;
 
@@ -113,7 +114,9 @@ const fetchReleases = packagesWithRepos =>
     .catch(e => {
       // TODO: return error
       console.log(
-        `Caught Error: couldn't fetch github releases for ${JSON.stringify(packageRepos)}`
+        `Caught Error: couldn't fetch github releases for ${JSON.stringify(
+          packageRepos
+        )}`
       );
     });
 
@@ -123,7 +126,8 @@ const mungeReleases = R.pipe(
     R.pathOr([], ["releases", "nodes"])(val).map(n => ({
       ...n,
       packageName: cryptr.decrypt(key.slice(1))
-    }))),
+    }))
+  ),
   R.values,
   R.flatten,
   R.reject(R.isNil)
@@ -150,7 +154,10 @@ exports.handler = async (event, context) => {
 
   const releasesPayload = await fetchReleases(packagesWithRepos);
 
-  const releases = R.pipe(mungeReleases, sortReleases)(releasesPayload);
+  const releases = R.pipe(
+    mungeReleases,
+    sortReleases
+  )(releasesPayload);
 
   return { statusCode: 200, body: JSON.stringify({ releases }) };
 };

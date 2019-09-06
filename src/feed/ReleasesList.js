@@ -20,13 +20,7 @@ const sortReleases = sort =>
       : R.ascend(R.prop("packageName"))
   ]);
 
-const filterReleases = (
-  language,
-  filters,
-  dependencies,
-  devDependencies,
-  lockFile
-) => {
+const filterReleases = (language, filters, dependenciesFile, lockFile) => {
   const {
     includeOld,
     includeAlpha,
@@ -42,9 +36,16 @@ const filterReleases = (
     [!includeRC, isReleaseCandidate],
     ...(language === "javascript"
       ? [
-          [!includeOld, isSatisfied(dependencies, devDependencies, lockFile)],
-          [!includeDev, isDevDependency(devDependencies)],
-          [!includeDep, isDependency(dependencies)]
+          [
+            !includeOld,
+            isSatisfied(
+              dependenciesFile.dependencies,
+              dependenciesFile.devDependencies,
+              lockFile
+            )
+          ],
+          [!includeDev, isDevDependency(dependenciesFile.devDependencies)],
+          [!includeDep, isDependency(dependenciesFile.dependencies)]
         ]
       : [])
   ];
@@ -53,23 +54,22 @@ const filterReleases = (
     R.any(
       ([shouldRejectKind, rejectFn]) =>
         shouldRejectKind && rejectFn.call(this, release)
-    )(rejections));
+    )(rejections)
+  );
 };
 
-const ReleasesList = (
-  {
-    language,
-    releases,
-    dependenciesFile: { dependencies, devDependencies },
-    lockFile,
-    sort,
-    filters,
-    onFilterChange,
-    onSortChange
-  }
-) => {
+const ReleasesList = ({
+  language,
+  releases,
+  dependenciesFile,
+  lockFile,
+  sort,
+  filters,
+  onFilterChange,
+  onSortChange
+}) => {
   const releaseListings = R.pipe(
-    filterReleases(language, filters, dependencies, devDependencies, lockFile),
+    filterReleases(language, filters, dependenciesFile, lockFile),
     sortReleases(sort)
   )(releases);
 
@@ -83,20 +83,21 @@ const ReleasesList = (
 
       <hr style={{ marginBottom: "2.5rem" }} />
 
-      {releaseListings.length === 0
-        ? <div>No matching releases found.</div>
-        : releaseListings.map(release => (
-            <ReleaseListing
-              key={`${release.packageName}-${release.tagName}`}
-              {...{
-                language,
-                release,
-                dependencies,
-                devDependencies,
-                lockFile
-              }}
-            />
-          ))}
+      {releaseListings.length === 0 ? (
+        <div>No matching releases found.</div>
+      ) : (
+        releaseListings.map(release => (
+          <ReleaseListing
+            key={`${release.packageName}-${release.tagName}`}
+            {...{
+              language,
+              release,
+              dependenciesFile,
+              lockFile
+            }}
+          />
+        ))
+      )}
     </div>
   );
 };

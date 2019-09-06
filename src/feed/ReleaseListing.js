@@ -1,23 +1,40 @@
+import * as R from "ramda";
 import React from "react";
 import marked from "marked";
 
-const ReleaseListing = (
-  {
-    language,
-    release: {
-      url,
-      description,
-      publishedAt,
-      tagName,
-      packageName
-    },
-    dependencies,
-    devDependencies,
-    lockFile
-  }
-) => {
-  const specifiedVersion = () =>
-    dependencies[packageName] || devDependencies[packageName] || "?";
+const ReleaseListing = ({
+  language,
+  release: { url, description, publishedAt, tagName, packageName },
+  dependenciesFile,
+  lockFile
+}) => {
+  const specifiedVersion = () => {
+    if (language === "javascript") {
+      return (
+        dependenciesFile.dependencies[packageName] ||
+        dependenciesFile.devDependencies[packageName] ||
+        null
+      );
+    }
+    if (language === "ruby") {
+      const [_, version] =
+        dependenciesFile.match(
+          new RegExp(`gem '${packageName}'.*?('.*\\d\\..*?')`)
+        ) || [];
+
+      return version || null;
+    }
+    return null;
+  };
+
+  const versionsMessage = [
+    specifiedVersion() ? `currently specified as ${specifiedVersion()}` : null,
+    lockFile && language === "javascript"
+      ? `locked at ${lockFile[packageName]}`
+      : null
+  ]
+    .filter(x => !!x)
+    .join(", ");
 
   return (
     <div>
@@ -44,15 +61,9 @@ const ReleaseListing = (
         >
           {tagName}
         </a>
-        {language === "javascript" &&
-          <span style={{ fontSize: 16 }}>
-            (currently specified as
-            {" "}
-            {specifiedVersion() || "?"}
-            {lockFile &&
-              `, locked at ${lockFile[packageName] ? lockFile[packageName] : "?"}`}
-            )
-          </span>}
+        {versionsMessage.length > 0 && (
+          <span style={{ fontSize: 16 }}>({versionsMessage})</span>
+        )}
       </div>
       <br />
       <pre
