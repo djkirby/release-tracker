@@ -2,15 +2,15 @@ import React from "react";
 
 import { dependenciesFileName, lockFileName } from "../shared/utils";
 
-const Setup = (
-  {
-    language,
-    onLanguageChange,
-    onDependenciesFileChange,
-    onLockFileChange,
-    onContinueClick
-  }
-) => {
+const Setup = ({
+  language,
+  name,
+  onLanguageChange,
+  onDependenciesFileChange,
+  onLockFileChange,
+  onContinueClick,
+  onNameChange
+}) => {
   const handleContinueClick = e => {
     e.preventDefault();
     onContinueClick();
@@ -28,9 +28,7 @@ const Setup = (
           </div>
           <div style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex" }}>
-              <h3 style={{ marginRight: ".5rem", fontSize: 20 }}>
-                Language:
-              </h3>
+              <h3 style={{ marginRight: ".5rem", fontSize: 20 }}>Language:</h3>
               <span style={{ marginRight: "1rem" }}>
                 <input
                   id="javascript"
@@ -38,7 +36,8 @@ const Setup = (
                   type="radio"
                   checked={language === "javascript"}
                   onChange={() => onLanguageChange("javascript")}
-                />&nbsp;
+                />
+                &nbsp;
                 <label htmlFor="javascript">javascript</label>
               </span>
               <span>
@@ -48,11 +47,24 @@ const Setup = (
                   type="radio"
                   checked={language === "ruby"}
                   onChange={() => onLanguageChange("ruby")}
-                />&nbsp;
+                />
+                &nbsp;
                 <label htmlFor="ruby">ruby</label>
               </span>
             </div>
           </div>
+          {language !== "javascript" && (
+            <div style={{ marginBottom: "1rem" }}>
+              <label htmlFor="name">project name: </label>
+              <input
+                required={true}
+                name="name"
+                id="name"
+                value={name}
+                onChange={e => onNameChange(e.target.value)}
+              />
+            </div>
+          )}
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="package-json">
               {dependenciesFileName(language)}:{" "}

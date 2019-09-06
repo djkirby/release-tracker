@@ -25,7 +25,8 @@ const yarnLockToMaxVersions = R.pipe(
       (maxVersion, [_, { version }]) =>
         semver.gt(version, maxVersion) ? version : maxVersion,
       lockedPackageVersions[0][1].version
-    ))
+    )
+  )
 );
 
 const getJavascriptPackages = R.pipe(
@@ -37,13 +38,20 @@ const getJavascriptPackages = R.pipe(
 
 const getRubyPackages = R.pipe(
   R.match(/gem '.+?'/g),
-  R.map(R.pipe(R.match(/gem '(.+?)'/), R.nth(1)))
+  R.map(
+    R.pipe(
+      R.match(/gem '(.+?)'/),
+      R.nth(1)
+    )
+  )
 );
 
 const getDependenciesFilePackages = (language, dependenciesFile) =>
   language === "javascript"
     ? getJavascriptPackages(dependenciesFile)
-    : language === "ruby" ? getRubyPackages(dependenciesFile) : [];
+    : language === "ruby"
+      ? getRubyPackages(dependenciesFile)
+      : [];
 
 const fetchReleases = (language, dependenciesFile) =>
   Promise.all(
@@ -52,8 +60,11 @@ const fetchReleases = (language, dependenciesFile) =>
       getDependenciesFilePackages(language, dependenciesFile)
     ).map(pkg =>
       axios.get(
-        `/.netlify/functions/get-package-releases?packages=${pkg.join(",")}&language=${language}`
-      ))
+        `/.netlify/functions/get-package-releases?packages=${pkg.join(
+          ","
+        )}&language=${language}`
+      )
+    )
   );
 
 const getPackageRepoPath = ({ repository }) =>
@@ -70,6 +81,7 @@ const parseDependenciesFile = (language, file) =>
   language === "javascript" ? JSON.parse(file) : file;
 
 const initialContext = {
+  name: null,
   language: "javascript",
   dependenciesFile: null,
   lockFile: null,
@@ -148,6 +160,7 @@ const releaseTrackerMachine = Machine(
               "clearLockFile"
             ]
           },
+          UPDATE_NAME: { actions: "updateName" },
           CONTINUE: { target: "feed", cond: "dependenciesFileSaved" }
         }
       },
@@ -189,7 +202,11 @@ const releaseTrackerMachine = Machine(
         fetchReleases(language, dependenciesFile)
     },
     actions: {
-      changeLanguage: assign({ language: (_, { language }) => language }),
+      changeLanguage: assign({
+        language: (_, { language }) => language,
+        name: ({ name }, { language }) =>
+          language === "javascript" ? null : name
+      }),
       storeDependenciesFile: assign({
         dependenciesFile: ({ language }, { file }) =>
           parseDependenciesFile(language, file)
@@ -210,7 +227,8 @@ const releaseTrackerMachine = Machine(
           ...filters,
           [filter]: !filters[filter]
         })
-      })
+      }),
+      updateName: assign({ name: (_, { name }) => name })
     }
   }
 );
@@ -249,7 +267,8 @@ const App = () => {
     sort,
     filters,
     error,
-    releases
+    releases,
+    name
   } = current.context;
 
   React.useEffect(() => {
@@ -320,6 +339,9 @@ const App = () => {
   };
 
   const getProjectName = () => {
+    if (language !== "javascript") {
+      return name;
+    }
     if (!dependenciesFile) {
       return null;
     }
@@ -341,31 +363,32 @@ const App = () => {
       <hr />
 
       <ErrorBoundary>
-        {current.matches("setup")
-          ? <Setup
-              {...{ language }}
-              onLanguageChange={language =>
-                send({ type: "CHANGE_LANGUAGE", language })}
-              onDependenciesFileChange={handleDependenciesFileChange}
-              onLockFileChange={handleLockFileChange}
-              onContinueClick={() => send("CONTINUE")}
-            />
-          : current.matches("feed")
-              ? <Feed
-                  {...{
-                    language,
-                    error,
-                    releases,
-                    dependenciesFile,
-                    filters,
-                    lockFile,
-                    sort
-                  }}
-                  onFilterChange={filter =>
-                    send({ type: "CHANGE_FILTER", filter })}
-                  onSortChange={sort => send({ type: "CHANGE_SORT", sort })}
-                />
-              : null}
+        {current.matches("setup") ? (
+          <Setup
+            {...{ language, name }}
+            onLanguageChange={language =>
+              send({ type: "CHANGE_LANGUAGE", language })
+            }
+            onDependenciesFileChange={handleDependenciesFileChange}
+            onLockFileChange={handleLockFileChange}
+            onContinueClick={() => send("CONTINUE")}
+            onNameChange={name => send({ type: "UPDATE_NAME", name })}
+          />
+        ) : current.matches("feed") ? (
+          <Feed
+            {...{
+              language,
+              error,
+              releases,
+              dependenciesFile,
+              filters,
+              lockFile,
+              sort
+            }}
+            onFilterChange={filter => send({ type: "CHANGE_FILTER", filter })}
+            onSortChange={sort => send({ type: "CHANGE_SORT", sort })}
+          />
+        ) : null}
       </ErrorBoundary>
     </ErrorBoundary>
   );
