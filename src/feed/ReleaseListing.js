@@ -27,11 +27,20 @@ const ReleaseListing = ({
     return null;
   };
 
+  const lockedVersion = () => {
+    if (language === "javascript") {
+      return lockFile[packageName] || null;
+    }
+    if (language === "ruby") {
+      const spec = lockFile.GEM.specs[packageName];
+      return spec ? spec.version : null;
+    }
+    return null;
+  };
+
   const versionsMessage = [
     specifiedVersion() ? `currently specified as ${specifiedVersion()}` : null,
-    lockFile && language === "javascript"
-      ? `locked at ${lockFile[packageName]}`
-      : null
+    lockedVersion() ? `locked at ${lockedVersion()}` : null
   ]
     .filter(x => !!x)
     .join(", ");

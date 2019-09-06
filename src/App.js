@@ -1,6 +1,7 @@
 import { useService } from "@xstate/react";
 import * as lockfile from "@yarnpkg/lockfile";
 import axios from "axios";
+import * as gemfile from "gemfile";
 import * as R from "ramda";
 import React from "react";
 import semver from "semver";
@@ -80,8 +81,15 @@ const extractPackageRepo = dependenciesFile => {
 const parseDependenciesFile = (language, file) =>
   language === "javascript" ? JSON.parse(file) : file;
 
+const parseLockFile = (language, file) =>
+  language === "javascript"
+    ? lockfile.parse(file).object
+    : language === "ruby"
+      ? gemfile.interpret(file)
+      : null;
+
 const initialContext = {
-  name: null,
+  name: "",
   language: "javascript",
   dependenciesFile: null,
   lockFile: null,
@@ -205,7 +213,7 @@ const releaseTrackerMachine = Machine(
       changeLanguage: assign({
         language: (_, { language }) => language,
         name: ({ name }, { language }) =>
-          language === "javascript" ? null : name
+          language === "javascript" ? "" : name
       }),
       storeDependenciesFile: assign({
         dependenciesFile: ({ language }, { file }) =>
@@ -329,9 +337,13 @@ const App = () => {
     } else if (file) {
       const reader = new FileReader();
       reader.onload = ({ target: { result } }) => {
+        const parsedFile = parseLockFile(language, result);
         send({
           type: "UPLOAD_LOCK_FILE",
-          file: yarnLockToMaxVersions(lockfile.parse(result).object)
+          file:
+            language === "javascript"
+              ? yarnLockToMaxVersions(parsedFile)
+              : parsedFile
         });
       };
       reader.readAsText(file);
